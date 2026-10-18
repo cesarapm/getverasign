@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use setasign\Fpdi\Fpdi;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PdfSignatureService
 {
     /**
-     * Incrustar firmas en el PDF usando Ghostscript + ImageMagick
+     * Incrustar firmas en PDF usando FPDI
      */
     public static function embedSignatures($pdfPath, $signatureFields)
     {
@@ -23,6 +25,18 @@ class PdfSignatureService
                 'fields_count' => count($signatureFields),
             ]);
 
+            // Crear instancia de FPDI
+            $pdf = new Fpdi('P', 'mm', 'A4');
+            
+            // Obtener el número de páginas
+            $pageCount = $pdf->setSourceFile($pdfFullPath);
+            
+            \Log::info('📖 PDF PAGES', ['count' => $pageCount]);
+
+            // A4 dimensions en mm
+            $a4Width = 210;
+            $a4Height = 297;
+
             // Agrupar firmas por página
             $signaturesByPage = [];
             foreach ($signatureFields as $field) {
@@ -33,84 +47,52 @@ class PdfSignatureService
                 $signaturesByPage[$pageNum][] = $field;
             }
 
-            // Crear directorio temporal
-            $tempDir = storage_path('app/temp-pdf-' . uniqid());
-            mkdir($tempDir, 0755, true);
+            // Procesar cada página
+            for ($pageNum = 1; $pageNum <= $pageCount; $pageNum++) {
+                // Importar página existente
+                $templateId = $pdf->importPage($pageNum);
+                $pdf->addPage();
+                $pdf->useTemplate($templateId, 0, 0, $a4Width, $a4Height);
 
-            // Dimensiones de A4 a 150 DPI (estándar)
-            $a4WidthPx = 1240;
-            $a4HeightPx = 1754;
+                \Log::info('🔄 PROCESSING PAGE', ['page_num' => $pageNum]);
 
-            // Paso 1: Convertir PDF a imágenes usando Ghostscript
-            \Log::info('🔄 Converting PDF to images...');
-            $command = "gs -q -dNOPAUSE -dBATCH -sDEVICE=jpeg -r150 -sOutputFile=" . escapeshellarg($tempDir . '/page-%d.jpg') . " " . escapeshellarg($pdfFullPath) . " 2>&1";
-            exec($command, $output, $returnCode);
-            
-            if ($returnCode !== 0) {
-                throw new \Exception("Ghostscript error: " . implode("\n", $output));
-            }
-
-            $pageImages = glob($tempDir . '/page-*.jpg');
-            sort($pageImages);
-            $pageCount = count($pageImages);
-
-            \Log::info('📄 Pages extracted', ['count' => $pageCount]);
-
-            if ($pageCount === 0) {
-                throw new \Exception("No pages extracted from PDF");
-            }
-
-            // Paso 2: Incrustar firmas en cada página
-            foreach ($pageImages as $imageFile) {
-                preg_match('/page-(\d+)/', $imageFile, $matches);
-                $pageNum = (int)$matches[1];
-
+                // Agregar firmas de esta página
                 if (isset($signaturesByPage[$pageNum])) {
                     foreach ($signaturesByPage[$pageNum] as $field) {
-                        self::addSignatureToImage($imageFile, $field, $a4WidthPx, $a4HeightPx);
+                        self::addSignatureToPage($pdf, $field, $a4Width, $a4Height);
                     }
                 }
             }
 
-            // Paso 3: Convertir imágenes de vuelta a PDF
-            \Log::info('🖼️ Converting images back to PDF...');
-            $signedPdfName = 'signed_' . time() . '_' . \Illuminate\Support\Str::random(10) . '.pdf';
+            // Generar nombre único para el PDF firmado
+            $signedPdfName = 'signed_' . time() . '_' . Str::random(10) . '.pdf';
             $signedPdfPath = 'signature-documents/pdfs-signed/' . $signedPdfName;
             $signedPdfFullPath = Storage::disk('public')->path($signedPdfPath);
 
-            $imagePattern = $tempDir . '/page-*.jpg';
-            $command = "convert " . escapeshellarg($imagePattern) . " -compress jpeg -quality 85 " . escapeshellarg($signedPdfFullPath);
-            exec($command, $output, $returnCode);
+            // Guardar PDF
+            $pdf->Output($signedPdfFullPath, 'F');
 
-            if ($returnCode !== 0) {
-                throw new \Exception("Convert error: " . implode("\n", $output));
-            }
-
-            \Log::info('✅ PDF created', [
-                'path' => $signedPdfPath,
-                'size' => filesize($signedPdfFullPath),
+            \Log::info('✅ PDF SAVED', [
+                'output_path' => $signedPdfPath,
+                'file_size' => filesize($signedPdfFullPath),
             ]);
-
-            // Limpiar archivos temporales
-            foreach (glob($tempDir . '/*') as $file) {
-                unlink($file);
-            }
-            rmdir($tempDir);
 
             return $signedPdfPath;
 
         } catch (\Exception $e) {
             \Log::error('❌ ERROR EMBEDDING SIGNATURES', [
                 'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
             return $pdfPath;
         }
     }
 
     /**
-     * Agregar firma a una imagen con dimensiones de A4 estándar
+     * Agregar firma a la página actual
      */
-    private static function addSignatureToImage($imagePath, $field, $a4WidthPx, $a4HeightPx)
+    private static function addSignatureToPage($pdf, $field, $a4Width, $a4Height)
     {
         try {
             $signaturePath = $field['signatureImagePath'] ?? null;
@@ -124,77 +106,43 @@ class PdfSignatureService
                 return;
             }
 
-            // Obtener dimensiones actuales de la imagen
-            $size = getimagesize($imagePath);
-            if (!$size) {
-                throw new \Exception("Cannot get image size: $imagePath");
-            }
+            // Convertir posiciones de porcentaje a milímetros en A4
+            $xPercent = (float)$field['x'];
+            $yPercent = (float)$field['y'];
+            $widthPercent = (float)$field['width'];
+            $heightPercent = (float)$field['height'];
 
-            $actualWidth = $size[0];
-            $actualHeight = $size[1];
+            // Convertir % a mm
+            $xMm = ($xPercent / 100) * $a4Width;
+            $yMm = ($yPercent / 100) * $a4Height;
+            $widthMm = ($widthPercent / 100) * $a4Width;
+            $heightMm = ($heightPercent / 100) * $a4Height;
 
-            // Escala factor para normalizar a A4 estándar
-            $scaleX = $actualWidth / $a4WidthPx;
-            $scaleY = $actualHeight / $a4HeightPx;
-
-            // Convertir posiciones de porcentaje a píxeles (basado en A4 estándar)
-            $x = (float)$field['x'];
-            $y = (float)$field['y'];
-            $width = (float)$field['width'];
-            $height = (float)$field['height'];
-
-            // Convertir % a píxeles en coordenadas A4 estándar
-            $xPx = ($x / 100) * $a4WidthPx * $scaleX;
-            $yPx = ($y / 100) * $a4HeightPx * $scaleY;
-            $widthPx = ($width / 100) * $a4WidthPx * $scaleX;
-            $heightPx = ($height / 100) * $a4HeightPx * $scaleY;
-
-            \Log::info('✍️ Adding signature', [
+            \Log::info('Adding signature', [
                 'page' => $field['page'],
-                'percent_x' => $x,
-                'percent_y' => $y,
-                'percent_width' => $width,
-                'percent_height' => $height,
-                'actual_img_width' => $actualWidth,
-                'actual_img_height' => $actualHeight,
-                'x_px' => $xPx,
-                'y_px' => $yPx,
-                'width_px' => $widthPx,
-                'height_px' => $heightPx,
-                'scale_x' => $scaleX,
-                'scale_y' => $scaleY,
+                'x_mm' => $xMm,
+                'y_mm' => $yMm,
+                'width_mm' => $widthMm,
+                'height_mm' => $heightMm,
             ]);
 
-            // Crear imagen temporal redimensionada
-            $tempSignature = storage_path('app/temp-sig-' . uniqid() . '.png');
-            $command = "convert " . escapeshellarg($signatureFullPath) . " -resize " . floor($widthPx) . "x" . floor($heightPx) . "! " . escapeshellarg($tempSignature);
-            exec($command, $output, $returnCode);
+            // Incrustar imagen
+            $pdf->Image(
+                $signatureFullPath,
+                $xMm,
+                $yMm,
+                $widthMm,
+                $heightMm,
+                'PNG'
+            );
 
-            if ($returnCode !== 0) {
-                \Log::warning('Failed to resize signature');
-                return;
-            }
-
-            // Incrustar firma en la imagen usando composite
-            $command = "convert " . escapeshellarg($imagePath) . " " . escapeshellarg($tempSignature) . " -geometry +" . floor($xPx) . "+" . floor($yPx) . " -composite " . escapeshellarg($imagePath);
-            exec($command, $output, $returnCode);
-
-            unlink($tempSignature);
-
-            if ($returnCode === 0) {
-                \Log::info('✅ Signature added successfully');
-            } else {
-                \Log::warning('Failed to composite signature: ' . implode("\n", $output));
-            }
+            \Log::info('Signature embedded successfully');
 
         } catch (\Exception $e) {
-            \Log::error('Error adding signature to image: ' . $e->getMessage());
+            \Log::error('Error adding signature: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Obtener información del PDF
-     */
     public static function getPdfInfo($pdfPath)
     {
         try {
@@ -203,8 +151,12 @@ class PdfSignatureService
                 return null;
             }
 
+            $pdf = new Fpdi();
+            $pageCount = $pdf->setSourceFile($pdfFullPath);
+
             return [
                 'path' => $pdfPath,
+                'pages' => $pageCount,
                 'size' => filesize($pdfFullPath),
             ];
         } catch (\Exception $e) {
