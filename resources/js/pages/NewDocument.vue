@@ -925,7 +925,9 @@ const pageRenderTasks = new Map();
 const selectedSignerId = ref(null);
 const isPlacingSignature = ref(false);
 const draggedField = ref(null);
-const dragOffset = ref({ x: 0, y: 0 });
+// Dimensiones estándar de A4 a 150 DPI (deben coincidir con el backend)
+const A4_WIDTH_PX = 1240;
+const A4_HEIGHT_PX = 1754;
 const suppressFieldClickId = ref(null);
 const isTouchPointerDevice = ref(
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -1219,21 +1221,31 @@ const renderPage = async (pageIndex, canvas) => {
 
     pdfPages.value[pageIndex] = markRaw(page);
 
+    // Usar escala basada en A4 estándar (1240 x 1754 px a 150 DPI)
+    // Esto asegura que las coordenadas de firma coincidan exactamente
     const scale = currentZoom.value / 100;
     const viewport = page.getViewport({ scale });
+    
+    // Normalizar al tamaño de A4 a 150 DPI si es necesario
+    const normalizedViewport = {
+      width: Math.floor(viewport.width),
+      height: Math.floor(viewport.height)
+    };
+    
+    console.log('[PDF] viewport:', viewport.width, 'x', viewport.height);
+    console.log('[PDF] normalized viewport:', normalizedViewport.width, 'x', normalizedViewport.height);
+
     const context = canvas.getContext('2d');
 
     if (!context) {
       throw new Error(`No se pudo obtener el contexto del canvas en página ${pageIndex + 1}`);
     }
 
-    console.log('[PDF] viewport:', viewport.width, viewport.height);
-
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
+    canvas.width = normalizedViewport.width;
+    canvas.height = normalizedViewport.height;
 
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -1661,9 +1673,13 @@ const handlePDFClick = (event, pageNum) => {
   const canvasX = event.clientX - rect.left;
   const canvasY = event.clientY - rect.top;
   
-  // Convertir a porcentaje relativo al canvas
-  const x = (canvasX / rect.width) * 100;
-  const y = (canvasY / rect.height) * 100;
+  // Calcular el scale factor basado en el tamaño actual del contenedor
+  const scaleX = rect.width / A4_WIDTH_PX;
+  const scaleY = rect.height / A4_HEIGHT_PX;
+  
+  // Convertir posición del mouse a coordenadas A4 normalizadas (porcentaje)
+  const x = (canvasX / scaleX) / A4_WIDTH_PX * 100;
+  const y = (canvasY / scaleY) / A4_HEIGHT_PX * 100;
   
   // Validar que esté dentro del canvas
   if (x < 0 || x > 100 || y < 0 || y > 100) return;
@@ -1717,10 +1733,16 @@ const startDrag = (event, fieldId) => {
   if (!canvas) return;
   
   const rect = canvas.getBoundingClientRect();
-  const fieldPixelX = (field.x / 100) * rect.width;
-  const fieldPixelY = (field.y / 100) * rect.height;
   
-  dragOffset.value = {
+  // Calcular scale factors
+  const scaleX = rect.width / A4_WIDTH_PX;
+  const scaleY = rect.height / A4_HEIGHT_PX;
+  
+  // Convertir coordenadas de porcentaje A4 a píxeles en el contenedor actual
+  const fieldPixelX = (field.x / 100) * A4_WIDTH_PX * scaleX;
+  const fieldPixelY = (field.y / 100) * A4_HEIGHT_PX * scaleY;
+  
+  const dragOffset = {
     x: event.clientX - rect.left - fieldPixelX,
     y: event.clientY - rect.top - fieldPixelY
   };
@@ -1745,8 +1767,15 @@ const startDrag = (event, fieldId) => {
     if (!moveCanvas) return;
     
     const parentRect = moveCanvas.getBoundingClientRect();
-    let newX = ((moveEvent.clientX - parentRect.left - dragOffset.value.x) / parentRect.width) * 100;
-    let newY = ((moveEvent.clientY - parentRect.top - dragOffset.value.y) / parentRect.height) * 100;
+    const moveScaleX = parentRect.width / A4_WIDTH_PX;
+    const moveScaleY = parentRect.height / A4_HEIGHT_PX;
+    
+    // Convertir posición del mouse a coordenadas A4 normalizadas
+    const pixelX = moveEvent.clientX - parentRect.left - dragOffset.x;
+    const pixelY = moveEvent.clientY - parentRect.top - dragOffset.y;
+    
+    let newX = (pixelX / moveScaleX) / A4_WIDTH_PX * 100;
+    let newY = (pixelY / moveScaleY) / A4_HEIGHT_PX * 100;
     
     // Mantener dentro de los límites
     newX = Math.max(0, Math.min(100 - (moveField.width), newX));

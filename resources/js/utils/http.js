@@ -4,7 +4,6 @@ import axios from 'axios';
 const http = axios.create({
   baseURL: '/api',
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
@@ -21,12 +20,19 @@ if (csrfToken) {
   http.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
 }
 
-// Interceptor para agregar token Sanctum al header
+// Interceptor para agregar token Sanctum al header y manejar Content-Type
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Si el data es FormData, no establecer Content-Type
+  // Axios y el navegador manejarán automáticamente el boundary de multipart
+  if (!(config.data instanceof FormData)) {
+    config.headers['Content-Type'] = 'application/json';
+  }
+  
   return config;
 });
 

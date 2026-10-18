@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SignatureDocument;
+use App\Services\PdfSignatureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -174,6 +175,18 @@ class SignatureDocumentController
                 'notify_on_expiration' => $request->boolean('notifyOnExpiration'),
                 'status' => 'pending',
             ]);
+
+            // Incrustar firmas en el PDF
+            try {
+                $signedPdfPath = PdfSignatureService::embedSignatures($storedPdfPath, $persistedFields);
+                // Actualizar la ruta del PDF con el PDF firmado
+                if ($signedPdfPath !== $storedPdfPath) {
+                    $document->update(['pdf_path' => $signedPdfPath]);
+                }
+            } catch (\Exception $e) {
+                // Si hay error al incrustar firmas, mantener el PDF original
+                \Log::warning('No se pudieron incrustar firmas en el PDF: ' . $e->getMessage());
+            }
 
             \App\Models\DocumentActivity::create([
                 'document_id' => $document->id,
