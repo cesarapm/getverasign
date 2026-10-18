@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::post('/signature-documents', [SignatureDocumentController::class, 'store']);
+    Route::get('/signature-documents/{id}', [SignatureDocumentController::class, 'show']);
 });
 
 // Rutas de productos

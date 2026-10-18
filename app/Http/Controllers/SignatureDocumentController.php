@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SignatureDocument;
-use App\Services\PdfSignatureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -176,18 +175,6 @@ class SignatureDocumentController
                 'status' => 'pending',
             ]);
 
-            // Incrustar firmas en el PDF
-            try {
-                $signedPdfPath = PdfSignatureService::embedSignatures($storedPdfPath, $persistedFields);
-                // Actualizar la ruta del PDF con el PDF firmado
-                if ($signedPdfPath !== $storedPdfPath) {
-                    $document->update(['pdf_path' => $signedPdfPath]);
-                }
-            } catch (\Exception $e) {
-                // Si hay error al incrustar firmas, mantener el PDF original
-                \Log::warning('No se pudieron incrustar firmas en el PDF: ' . $e->getMessage());
-            }
-
             \App\Models\DocumentActivity::create([
                 'document_id' => $document->id,
                 'event_type' => 'created',
@@ -226,6 +213,23 @@ class SignatureDocumentController
         }
     }
 
+    public function show($id)
+    {
+        $document = SignatureDocument::findOrFail($id);
+
+        return response()->json([
+            'id' => $document->id,
+            'document_name' => $document->document_name,
+            'description' => $document->description,
+            'pdf_url' => asset('storage/' . $document->pdf_path),
+            'signers' => $document->signers,
+            'signature_fields' => $document->signature_fields,
+            'signing_order' => $document->signing_order,
+            'expiration_days' => $document->expiration_days,
+            'status' => $document->status,
+        ]);
+    }
+
     private function decodeDataUrl(string $dataUrl): ?string
     {
         if (!preg_match('/^data:image\/[a-zA-Z0-9.+-]+;base64,(.*)$/', $dataUrl, $matches)) {
@@ -240,3 +244,4 @@ class SignatureDocumentController
         return $decoded;
     }
 }
+
