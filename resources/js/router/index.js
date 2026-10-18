@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
+// Importar las páginas/vistas - Autenticación
+import Login from '../pages/Login.vue';
+import Register from '../pages/Register.vue';
+
 // Importar las páginas/vistas - Ecommerce
 import Home from '../pages/Home.vue';
 import About from '../pages/About.vue';
@@ -22,99 +26,136 @@ import DocumentDetail from '../pages/DocumentDetail.vue';
 import Signers from '../pages/Signers.vue';
 import Settings from '../pages/Settings.vue';
 
+// Importar composable de autenticación
+import { useAuth } from '../composables/useAuth';
+
 const routes = [
+  // Rutas públicas
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: Home,
+    meta: { requiresAuth: false }
   },
   {
     path: '/productos',
     name: 'ProductList',
-    component: ProductList
+    component: ProductList,
+    meta: { requiresAuth: false }
   },
   {
     path: '/nosotros',
     name: 'About',
-    component: About
+    component: About,
+    meta: { requiresAuth: false }
   },
   {
     path: '/contacto',
     name: 'Contact',
-    component: Contact
+    component: Contact,
+    meta: { requiresAuth: false }
   },
   {
     path: '/producto/:id',
     name: 'ProductDetail',
-    component: ProductDetail
+    component: ProductDetail,
+    meta: { requiresAuth: false }
   },
   {
     path: '/carrito',
     name: 'Cart',
-    component: Cart
+    component: Cart,
+    meta: { requiresAuth: false }
   },
   {
     path: '/checkout',
     name: 'Checkout',
-    component: Checkout
+    component: Checkout,
+    meta: { requiresAuth: false }
   },
   {
     path: '/checkout/exito',
     name: 'PaymentSuccess',
-    component: PaymentSuccess
+    component: PaymentSuccess,
+    meta: { requiresAuth: false }
   },
   {
     path: '/checkout/pendiente',
     name: 'PaymentPending',
-    component: PaymentPending
+    component: PaymentPending,
+    meta: { requiresAuth: false }
   },
   {
     path: '/checkout/error',
     name: 'PaymentFailure',
-    component: PaymentFailure
+    component: PaymentFailure,
+    meta: { requiresAuth: false }
   },
   {
     path: '/mis-pedidos',
     name: 'CustomerOrders',
-    component: CustomerOrders
+    component: CustomerOrders,
+    meta: { requiresAuth: false }
   },
   {
     path: '/seguimiento-pedido/:orderNumber',
     name: 'OrderTracking',
     component: OrderTracking,
-    props: true
+    props: true,
+    meta: { requiresAuth: false }
   },
-  // Rutas - Plataforma de Firmas Electrónicas
+
+  // Rutas de autenticación (público, pero redirige si ya está logueado)
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { requiresAuth: false, isAuthPage: true }
+  },
+  {
+    path: '/registro',
+    name: 'Register',
+    component: Register,
+    meta: { requiresAuth: false, isAuthPage: true }
+  },
+
+  // Rutas - Plataforma de Firmas Electrónicas (protegidas)
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: Dashboard
+    component: Dashboard,
+    meta: { requiresAuth: true }
   },
   {
     path: '/documentos',
     name: 'DocumentList',
-    component: DocumentList
+    component: DocumentList,
+    meta: { requiresAuth: true }
   },
   {
     path: '/documento/nuevo',
     name: 'NewDocument',
-    component: NewDocument
+    component: NewDocument,
+    meta: { requiresAuth: true }
   },
   {
     path: '/documento/:id',
     name: 'DocumentDetail',
     component: DocumentDetail,
-    props: true
+    props: true,
+    meta: { requiresAuth: true }
   },
   {
     path: '/firmantes',
     name: 'Signers',
-    component: Signers
+    component: Signers,
+    meta: { requiresAuth: true }
   },
   {
     path: '/configuracion',
     name: 'Settings',
-    component: Settings
+    component: Settings,
+    meta: { requiresAuth: true }
   }
 ];
 
@@ -128,6 +169,28 @@ const router = createRouter({
     }
     // Siempre volver al inicio en navegación nueva
     return { top: 0, behavior: 'smooth' };
+  }
+});
+
+/**
+ * Guard global para proteger rutas
+ */
+router.beforeEach((to, from, next) => {
+  const { isAuthenticated } = useAuth();
+
+  // Si la ruta requiere autenticación
+  if (to.meta.requiresAuth && !isAuthenticated.value) {
+    // Redirigir a login
+    next({ name: 'Login', query: { redirect: to.fullPath } });
+  }
+  // Si es página de autenticación y ya está logueado
+  else if (to.meta.isAuthPage && isAuthenticated.value) {
+    // Redirigir al dashboard
+    next({ name: 'Dashboard' });
+  }
+  // Permitir navegación
+  else {
+    next();
   }
 });
 

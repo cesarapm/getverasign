@@ -438,7 +438,6 @@ const confirmDelete = () => {
   background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 100%);
   padding: 2rem 1rem;
   margin: 0;
-  margin-top: 100px;
   width: 100%;
   max-width: 100%;
 }
@@ -557,14 +556,76 @@ const confirmDelete = () => {
 
 :deep(.text-h6) {
   color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 :deep(.text-h5) {
-  color: #888 !important;
+  color: #b0b0b0 !important;
 }
 
 :deep(.text-h3) {
   color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+:deep(.text-caption) {
+  color: #808080 !important;
+}
+
+:deep(.v-text-field) {
+  background: #1a1a1a !important;
+}
+
+:deep(.v-field__outline) {
+  --v-border-color: rgba(212, 175, 55, 0.3);
+}
+
+:deep(.v-field--focused .v-field__outline) {
+  --v-border-color: #d4af37;
+}
+
+:deep(.v-field__input) {
+  color: #ffffff !important;
+  caret-color: #d4af37 !important;
+}
+
+:deep(.v-label) {
+  color: #9e9e9e !important;
+}
+
+:deep(.v-field--focused .v-label) {
+  color: #d4af37 !important;
+}
+
+:deep(.v-field__prepend-inner),
+:deep(.v-field__append-inner) {
+  color: #d4af37 !important;
+}
+
+:deep(.v-btn--variant-text) {
+  color: #d4af37 !important;
+}
+
+:deep(.v-btn--variant-text:hover) {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: #f0d85d !important;
+}
+
+:deep(.v-select__content) {
+  background: #1a1a1a !important;
+}
+
+:deep(.v-data-table__thead) {
+  background: #2a2a2a !important;
+}
+
+:deep(.v-data-table__thead .v-data-table__th) {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.v-data-table__tbody td) {
+  color: #b0b0b0 !important;
 }
 
 :deep(.v-container) {

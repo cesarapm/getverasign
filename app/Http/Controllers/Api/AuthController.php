@@ -2,108 +2,172 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-
-
 use Illuminate\Support\Facades\Hash;
-
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class AuthController
 {
-
-
-    public function index()
+    /**
+     * Iniciar sesión con correo y contraseña.
+     */
+    public function login(Request $request)
     {
-        $users = User::all();
+        $request->validate([
+            'email' => 'required|email|string',
+            'password' => 'required|string',
+        ], [
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'password.required' => 'La contraseña es requerida.',
+        ]);
 
+        $user = User::where('email', $request->email)->first();
 
-        $data = [
-            'users' => $users,
-            'status' => 200
-        ];
-
-        return response()->json($data, 200);
-    }
-
-
-    public function destroy($id)
-    {
-        // Encontrar el usuario por su ID
-        $user = User::find($id);
-
-        // Verificar si el usuario existe
-        if (!$user) {
-            return response()->json(['message' => 'Usuario no encontrado'], 404);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Las credenciales no coinciden con nuestros registros.']
+            ]);
         }
 
-        // Almacenar el ID del usuario para la respuesta
-
-
-        // Eliminar el usuario (esto también eliminará los sucursalautorizados debido a la eliminación en cascada)
-        $user->delete();
-        $users = User::all();
-
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Usuario eliminado correctamente',
-            'users' => $users,
+            'success' => true,
+            'message' => 'Sesión iniciada correctamente.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'profile' => $user->profile,
+            ],
+            'token' => $token,
         ], 200);
     }
 
+    /**
+     * Registrar un nuevo usuario.
+     */
     public function register(Request $request)
     {
-        //  Log::info('📩 Registro iniciado', $request->all()); // 🔍 Verifica lo que llega
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-            'role' => 'in:admin,cliente',
-            'activo' => 'integer|in:0,1',
-
-            // perfil
-            'telefono' => 'nullable|string',
-            'calle' => 'nullable|string',
-            'numero_exterior' => 'nullable|string',
-            'numero_interior' => 'nullable|string',
-            'colonia' => 'nullable|string',
-            'entre_calles' => 'nullable|string',
-            'codigo_postal' => 'nullable|string',
-            'ciudad' => 'nullable|string',
-            'estado' => 'nullable|string',
-            'pais' => 'nullable|string',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'name.required' => 'El nombre es requerido.',
+            'email.required' => 'El correo electrónico es requerido.',
+            'email.email' => 'El correo electrónico debe ser válido.',
+            'email.unique' => 'Este correo electrónico ya está registrado.',
+            'password.required' => 'La contraseña es requerida.',
+            'password.min' => 'La contraseña debe tener mínimo 8 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'cliente',
-            'activo' => $request->activo ?? 1
+            'role' => 'cliente',
+            'activo' => 1,
         ]);
 
+        // Crear perfil asociado
         $user->profile()->create([
-            'telefono' => $request->telefono,
-            'calle' => $request->calle,
-            'numero_exterior' => $request->numero_exterior,
-            'numero_interior' => $request->numero_interior,
-            'colonia' => $request->colonia,
-            'entre_calles' => $request->entre_calles,
-            'codigo_postal' => $request->codigo_postal,
-            'ciudad' => $request->ciudad,
-            'estado' => $request->estado,
-            'pais' => $request->pais ?? 'México',
+            'telefono' => null,
+            'calle' => null,
+            'numero_exterior' => null,
+            'numero_interior' => null,
+            'colonia' => null,
+            'entre_calles' => null,
+            'codigo_postal' => null,
+            'ciudad' => null,
+            'estado' => null,
+            'pais' => 'México',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Usuario registrado exitosamente',
-            'user' => $user->load('profile'),
+            'success' => true,
+            'message' => 'Registro completado exitosamente. Sesión iniciada.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'profile' => $user->profile,
+            ],
             'token' => $token,
         ], 201);
+    }
+
+    /**
+     * Cerrar sesión (revocar tokens).
+     */
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente.',
+        ], 200);
+    }
+
+    /**
+     * Obtener usuario autenticado actual.
+     */
+    public function getProfile(Request $request)
+    {
+        $user = $request->user()->load('profile');
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'profile' => $user->profile,
+            ],
+        ], 200);
+    }
+
+    /**
+     * Listar todos los usuarios (admin).
+     */
+    public function index()
+    {
+        $users = User::all();
+
+        return response()->json([
+            'success' => true,
+            'users' => $users,
+        ], 200);
+    }
+
+    /**
+     * Eliminar usuario (admin).
+     */
+    public function destroy($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado.',
+            ], 404);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Usuario eliminado correctamente.',
+        ], 200);
     }
 }

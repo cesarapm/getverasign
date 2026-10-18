@@ -18,6 +18,8 @@ use App\Http\Controllers\MarcaController;
 use App\Http\Controllers\PaymentMethodsController;
 use App\Http\Controllers\OrderTrackingController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\SignatureDocumentController;
+use App\Http\Controllers\DashboardController;
 use App\Models\Order;
 
 
@@ -26,39 +28,18 @@ use App\Models\Order;
 
 
 
-Route::post('/login', function (Request $request) {
-    $request->validate([
-        'email' => 'required|email',
-        'password' => 'required'
-    ]);
-
-    $user = User::where('email', $request->email)->first();
-
-    if (! $user || ! Hash::check($request->password, $user->password)) {
-        throw ValidationException::withMessages([
-            'email' => ['Las credenciales no son correctas.']
-        ]);
-    }
-
-    return response()->json([
-        'token' => $user->createToken('auth-token')->plainTextToken
-    ]);
-});
-
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    $user = $request->user()->load('profile'); // Carga la relación con UserProfile
-    return response()->json([
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'role' => $user->role,
-        'profile' => $user->profile, // Aquí va el UserProfile
-    ]);
-});
+Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+
+// Rutas protegidas por autenticación
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/profile', [AuthController::class, 'getProfile']);
+    Route::get('/user', [AuthController::class, 'getProfile']);
+    
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::post('/signature-documents', [SignatureDocumentController::class, 'store']);
+});
 
 // Rutas de productos
 Route::get('/products', [ProductoController::class, 'index']);

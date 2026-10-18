@@ -665,7 +665,6 @@ const closeSession = (id) => {
   background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 100%);
   padding: 2rem 1rem;
   margin: 0;
-  margin-top: 100px;
   width: 100%;
   max-width: 100%;
 }
@@ -739,11 +738,25 @@ const closeSession = (id) => {
 
 .info-item {
   padding: 0.75rem 0;
+  color: #b0b0b0;
 }
 
 :deep(.billing-table) {
   background: #1a1a1a;
   border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+:deep(.billing-table .v-data-table__thead) {
+  background: #2a2a2a !important;
+}
+
+:deep(.billing-table .v-data-table__thead .v-data-table__th) {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.billing-table .v-data-table__tbody td) {
+  color: #b0b0b0 !important;
 }
 
 :deep(.billing-table .v-data-table__tr:hover) {

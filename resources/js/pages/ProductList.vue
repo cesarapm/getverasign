@@ -675,10 +675,6 @@ const truncateDescription = (description) => {
 }
 
 @media (max-width: 600px) {
-  .product-list {
-    margin-top: 100px !important;
-  }
-
   .filters-shell {
     padding: 1rem;
     border-radius: 22px;

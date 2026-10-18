@@ -490,7 +490,6 @@ const handleConfirm = () => {
   background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 100%);
   padding: 2rem 1rem;
   margin: 0;
-  margin-top: 100px;
   width: 100%;
   max-width: 100%;
 }

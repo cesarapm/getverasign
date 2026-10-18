@@ -47,8 +47,14 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
     public function profile()
     {
         return $this->hasOne(\App\Models\UserProfile::class);
+    }
+
+    public function signatureDocuments()
+    {
+        return $this->hasMany(\App\Models\SignatureDocument::class, 'owner_id');
     }
 }

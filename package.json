@@ -22,10 +22,11 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "@fancyapps/ui": "^6.1.13",        
-    "@fortawesome/fontawesome-free": "^6.7.2",
+        "@fancyapps/ui": "^6.1.13",
+        "@fortawesome/fontawesome-free": "^6.7.2",
         "@mdi/font": "^7.4.47",
         "aos": "^2.3.4",
+        "pdfjs-dist": "^3.11.174",
         "vue": "^3.5.26",
         "vue-loader": "^17.4.2",
         "vue-router": "^4.6.4",

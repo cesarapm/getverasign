@@ -1,0 +1,549 @@
+/* ============================================================
+   TEMAS OSCURO - SOBREESCRITURAS DE VUETIFY
+   Asegura máximo contraste y legibilidad
+   ============================================================ */
+
+/* ============================================================
+   COLORES BASE DEFINIDOS
+   ============================================================ */
+:root {
+  --color-bg-dark: #0a0a0a;
+  --color-bg-dark-secondary: #1a1a1a;
+  --color-bg-dark-tertiary: #2a2a2a;
+  
+  --color-text-white: #ffffff;
+  --color-text-light-gray: #b0b0b0;
+  --color-text-medium-gray: #888888;
+  --color-text-dark-gray: #606060;
+  
+  --color-accent-gold: #d4af37;
+  --color-accent-gold-light: #f0d85d;
+  --color-accent-gold-dark: #c9a227;
+  
+  --color-error: #f44336;
+  --color-error-light: #ff6b6b;
+  --color-success: #66bb6a;
+  --color-warning: #ffa726;
+  --color-info: #42a5f5;
+}
+
+/* ============================================================
+   APLICACIÓN VUETIFY - FONDO OSCURO
+   ============================================================ */
+.v-application,
+.v-application::before {
+  background: linear-gradient(135deg, var(--color-bg-dark) 0%, #0d0d0d 100%) !important;
+}
+
+/* ============================================================
+   CONTENEDORES Y MAIN
+   ============================================================ */
+.v-main {
+  background: linear-gradient(135deg, var(--color-bg-dark) 0%, #0d0d0d 100%) !important;
+}
+
+.v-container {
+  background: transparent !important;
+}
+
+/* ============================================================
+   TARJETAS - FONDO OSCURO CON BORDE DORADO
+   ============================================================ */
+.v-card {
+  background-color: var(--color-bg-dark-secondary) !important;
+  color: var(--color-text-white) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-card__title {
+  color: var(--color-text-white) !important;
+  font-weight: 600 !important;
+}
+
+.v-card__subtitle {
+  color: var(--color-text-light-gray) !important;
+}
+
+.v-card__text {
+  color: var(--color-text-light-gray) !important;
+}
+
+/* ============================================================
+   CAMPOS DE TEXTO Y INPUTS - FONDO OSCURO
+   ============================================================ */
+.v-field {
+  background-color: var(--color-bg-dark-secondary) !important;
+}
+
+.v-field__outline {
+  --v-border-color: rgba(212, 175, 55, 0.3);
+}
+
+.v-field--focused .v-field__outline {
+  --v-border-color: var(--color-accent-gold);
+}
+
+.v-field__input {
+  color: var(--color-text-white) !important;
+  caret-color: var(--color-accent-gold) !important;
+}
+
+.v-field__input::placeholder {
+  color: var(--color-text-dark-gray) !important;
+  opacity: 1 !important;
+}
+
+.v-label {
+  color: var(--color-text-medium-gray) !important;
+}
+
+.v-field--focused .v-label {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-field--focused.v-field--variant-outlined .v-label {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-field__prepend-inner,
+.v-field__append-inner {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-field--disabled .v-field__input {
+  color: var(--color-text-dark-gray) !important;
+  opacity: 0.6 !important;
+}
+
+/* ============================================================
+   SELECTS Y COMBOBOX
+   ============================================================ */
+.v-select__content {
+  background: var(--color-bg-dark-secondary) !important;
+}
+
+.v-list-item {
+  color: var(--color-text-light-gray) !important;
+}
+
+.v-list-item__title {
+  color: var(--color-text-white) !important;
+}
+
+.v-list-item__subtitle {
+  color: var(--color-text-medium-gray) !important;
+}
+
+.v-list-item--active {
+  background: rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-list-item:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+}
+
+/* ============================================================
+   LISTAS - FONDO Y TEXTO LEGIBLE
+   ============================================================ */
+.v-list {
+  background: var(--color-bg-dark-secondary) !important;
+  color: var(--color-text-white) !important;
+}
+
+/* ============================================================
+   CHECKBOXES Y RADIOS
+   ============================================================ */
+.v-checkbox__checkmark {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-checkbox--checked .v-label {
+  color: var(--color-text-white) !important;
+}
+
+.v-checkbox .v-label {
+  color: var(--color-text-light-gray) !important;
+}
+
+/* ============================================================
+   BOTONES - VARIEDADES
+   ============================================================ */
+.v-btn--variant-text {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-btn--variant-text:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: var(--color-accent-gold-light) !important;
+}
+
+.v-btn--variant-outlined {
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  color: var(--color-text-white) !important;
+}
+
+.v-btn--variant-outlined:hover {
+  border-color: var(--color-accent-gold) !important;
+  background: rgba(212, 175, 55, 0.1) !important;
+}
+
+.v-btn:disabled {
+  opacity: 0.5 !important;
+}
+
+/* ============================================================
+   DIVIDERS - GRIS OSCURO CON TONO DORADO
+   ============================================================ */
+.v-divider {
+  border-color: rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ============================================================
+   CHIPS Y BADGES
+   ============================================================ */
+.v-chip {
+  background: rgba(212, 175, 55, 0.2) !important;
+  color: var(--color-accent-gold) !important;
+  font-weight: 500 !important;
+}
+
+.v-chip--variant-tonal {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: var(--color-accent-gold-light) !important;
+}
+
+/* ============================================================
+   ALERTAS - MÁXIMA VISIBILIDAD
+   ============================================================ */
+.v-alert {
+  background-color: rgba(244, 67, 54, 0.1) !important;
+  border: 1px solid rgba(244, 67, 54, 0.3) !important;
+}
+
+.v-alert--type-error {
+  background-color: rgba(244, 67, 54, 0.1) !important;
+  border-left: 4px solid var(--color-error) !important;
+}
+
+.v-alert--type-error .v-alert__content {
+  color: var(--color-error-light) !important;
+  font-weight: 500 !important;
+}
+
+.v-alert--type-success {
+  background-color: rgba(102, 187, 106, 0.1) !important;
+  border-left: 4px solid var(--color-success) !important;
+}
+
+.v-alert--type-success .v-alert__content {
+  color: var(--color-success) !important;
+  font-weight: 500 !important;
+}
+
+.v-alert--type-warning {
+  background-color: rgba(255, 167, 38, 0.1) !important;
+  border-left: 4px solid var(--color-warning) !important;
+}
+
+.v-alert--type-warning .v-alert__content {
+  color: var(--color-warning) !important;
+  font-weight: 500 !important;
+}
+
+.v-alert--type-info {
+  background-color: rgba(66, 165, 245, 0.1) !important;
+  border-left: 4px solid var(--color-info) !important;
+}
+
+.v-alert--type-info .v-alert__content {
+  color: var(--color-info) !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================================
+   PROGRESS BARS
+   ============================================================ */
+.v-progress-linear {
+  background: rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-progress-linear__bar {
+  background: var(--color-accent-gold) !important;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.v-tabs {
+  background: var(--color-bg-dark-secondary) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-tab {
+  color: var(--color-text-light-gray) !important;
+}
+
+.v-tab--selected {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-tab__slider {
+  background: var(--color-accent-gold) !important;
+}
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+.v-timeline-item__dot {
+  background: rgba(212, 175, 55, 0.3) !important;
+  border: 2px solid var(--color-bg-dark-secondary) !important;
+}
+
+.v-timeline-item__body {
+  color: var(--color-text-light-gray) !important;
+}
+
+/* ============================================================
+   DATA TABLE
+   ============================================================ */
+.v-data-table {
+  background: var(--color-bg-dark-secondary) !important;
+}
+
+.v-data-table__thead {
+  background: var(--color-bg-dark-tertiary) !important;
+}
+
+.v-data-table__thead tr {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-data-table__thead .v-data-table__th {
+  color: var(--color-text-white) !important;
+  font-weight: 600 !important;
+}
+
+.v-data-table__tbody tr {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1) !important;
+}
+
+.v-data-table__tbody td {
+  color: var(--color-text-light-gray) !important;
+}
+
+.v-data-table__tbody tr:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+}
+
+/* ============================================================
+   DIÁLOGOS Y MODALES
+   ============================================================ */
+.v-dialog .v-card {
+  background: var(--color-bg-dark-secondary) !important;
+}
+
+.v-overlay__scrim {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ============================================================
+   MENUS
+   ============================================================ */
+.v-menu__content {
+  background: var(--color-bg-dark-secondary) !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ============================================================
+   ESTILOS DE TEXTO - MÁXIMO CONTRASTE
+   ============================================================ */
+.text-body-1 {
+  color: var(--color-text-white) !important;
+}
+
+.text-body-2 {
+  color: var(--color-text-light-gray) !important;
+}
+
+.text-caption {
+  color: var(--color-text-dark-gray) !important;
+}
+
+.text-h1 {
+  color: var(--color-text-white) !important;
+}
+
+.text-h2 {
+  color: var(--color-text-white) !important;
+}
+
+.text-h3 {
+  color: var(--color-text-white) !important;
+}
+
+.text-h4 {
+  color: var(--color-text-white) !important;
+}
+
+.text-h5 {
+  color: var(--color-text-white) !important;
+}
+
+.text-h6 {
+  color: var(--color-text-white) !important;
+}
+
+.text-medium-emphasis {
+  color: var(--color-text-light-gray) !important;
+}
+
+.text-high-emphasis {
+  color: var(--color-text-white) !important;
+}
+
+/* ============================================================
+   AVATARES
+   ============================================================ */
+.v-avatar {
+  background: var(--color-accent-gold) !important;
+  color: var(--color-bg-dark) !important;
+}
+
+/* ============================================================
+   ICONOS
+   ============================================================ */
+.v-icon {
+  color: inherit;
+}
+
+.v-icon.text-primary {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-icon.text-success {
+  color: var(--color-success) !important;
+}
+
+.v-icon.text-error {
+  color: var(--color-error) !important;
+}
+
+.v-icon.text-warning {
+  color: var(--color-warning) !important;
+}
+
+.v-icon.text-info {
+  color: var(--color-info) !important;
+}
+
+/* ============================================================
+   NAVEGACIÓN APP BAR
+   ============================================================ */
+.v-app-bar {
+  background: var(--color-bg-dark-secondary) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+.v-app-bar .v-toolbar__content {
+  color: var(--color-text-white) !important;
+}
+
+.v-app-bar-title {
+  color: var(--color-text-white) !important;
+}
+
+/* ============================================================
+   NAVIGATION DRAWER
+   ============================================================ */
+.v-navigation-drawer {
+  background: var(--color-bg-dark-secondary) !important;
+  border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ============================================================
+   ENLACE DORADO
+   ============================================================ */
+a {
+  color: var(--color-accent-gold);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: var(--color-accent-gold-light);
+}
+
+.text-gold {
+  color: var(--color-accent-gold) !important;
+}
+
+.text-gold:hover {
+  color: var(--color-accent-gold-light) !important;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* ============================================================
+   RESPONSIVE Y AJUSTES FINALES
+   ============================================================ */
+@media (max-width: 600px) {
+  .v-field__prepend-inner,
+  .v-field__append-inner {
+    margin: 0 !important;
+  }
+
+  .v-text-field {
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* ============================================================
+   ACCESIBILIDAD Y FOCUS VISIBLE
+   ============================================================ */
+.v-field:focus-within {
+  outline: none;
+}
+
+.v-field--focused {
+  box-shadow: 0 0 0 1px var(--color-accent-gold) !important;
+}
+
+.v-btn:focus-visible {
+  outline: 2px solid var(--color-accent-gold) !important;
+  outline-offset: 2px !important;
+}
+
+/* ============================================================
+   SCROLLBAR - PERSONALIZADO
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-dark-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.6);
+}
+
+/* ============================================================
+   ANIMACIONES SUAVES
+   ============================================================ */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.v-btn,
+.v-field,
+.v-chip,
+a {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

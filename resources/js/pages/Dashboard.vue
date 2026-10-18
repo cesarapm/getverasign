@@ -100,11 +100,17 @@
           <v-divider></v-divider>
 
           <v-card-text class="pa-0">
-            <v-list v-if="pendingDocuments.length > 0" class="pa-0">
-              <template v-for="(doc, idx) in pendingDocuments.slice(0, 5)" :key="doc.id">
+            <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
+            
+            <v-alert v-else-if="error" type="error" variant="tonal" class="ma-4">
+              {{ error }}
+            </v-alert>
+
+            <v-list v-else-if="pendingDocuments.length > 0" class="pa-0">
+              <template v-for="(doc, idx) in pendingDocuments" :key="doc.id">
                 <v-list-item
                   :to="{ name: 'DocumentDetail', params: { id: doc.id } }"
-                  class="px-6 py-4 cursor-pointer hover:bg-gray-50"
+                  class="px-6 py-4 cursor-pointer"
                 >
                   <template #prepend>
                     <v-icon class="mr-4" color="warning">mdi-file-document</v-icon>
@@ -114,7 +120,7 @@
                   <v-list-item-subtitle>
                     <span class="text-body-2">Enviado por: {{ doc.sender }}</span>
                     <span class="ml-4 text-body-2 text-medium-emphasis">
-                      {{ formatDate(doc.createdAt) }}
+                      {{ formatDate(new Date(doc.createdAt)) }}
                     </span>
                   </v-list-item-subtitle>
 
@@ -122,12 +128,12 @@
                     <div class="text-right">
                       <v-chip
                         size="small"
-                        color="warning"
+                        :color="doc.status === 'pending' ? 'warning' : 'info'"
                         variant="tonal"
                         label
                         class="mb-1"
                       >
-                        Pendiente
+                        {{ doc.status === 'pending' ? 'Pendiente' : 'En Proceso' }}
                       </v-chip>
                       <div class="text-body-2 text-medium-emphasis">
                         {{ doc.signers.length }} {{ doc.signers.length === 1 ? 'firmante' : 'firmantes' }}
@@ -136,9 +142,10 @@
                   </template>
                 </v-list-item>
 
-                <v-divider v-if="idx < pendingDocuments.slice(0, 5).length - 1"></v-divider>
+                <v-divider v-if="idx < pendingDocuments.length - 1"></v-divider>
               </template>
             </v-list>
+            
             <div v-else class="pa-8 text-center">
               <v-icon size="48" class="mb-4 text-medium-emphasis">mdi-file-document-outline</v-icon>
               <p class="text-body-2 text-medium-emphasis">No hay documentos pendientes</p>
@@ -157,14 +164,20 @@
           <v-divider></v-divider>
 
           <v-card-text class="pa-0">
+            <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
+            
+            <v-alert v-else-if="error" type="error" variant="tonal" class="ma-4">
+              {{ error }}
+            </v-alert>
+
             <v-timeline
-              v-if="recentActivity.length > 0"
+              v-else-if="recentActivity.length > 0"
               side="start"
               density="compact"
               class="pa-4"
             >
               <v-timeline-item
-                v-for="(activity, idx) in recentActivity.slice(0, 6)"
+                v-for="(activity, idx) in recentActivity"
                 :key="idx"
                 :dot-color="getActivityColor(activity.type)"
                 :icon="getActivityIcon(activity.type)"
@@ -173,12 +186,13 @@
                 <div class="text-body-2">
                   <strong>{{ activity.title }}</strong>
                   <div class="text-caption text-medium-emphasis">
-                    {{ formatDate(activity.date) }}
+                    {{ formatDate(new Date(activity.date)) }}
                   </div>
                   <p class="mt-1 text-body-2">{{ activity.description }}</p>
                 </div>
               </v-timeline-item>
             </v-timeline>
+            
             <div v-else class="pa-8 text-center">
               <v-icon size="48" class="mb-4 text-medium-emphasis">mdi-history</v-icon>
               <p class="text-body-2 text-medium-emphasis">Sin actividad reciente</p>
@@ -269,141 +283,94 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
-// Mock data
-const documents = ref([
-  {
-    id: 1,
-    name: 'Contrato de Servicios',
-    sender: 'Juan González',
-    createdAt: new Date('2024-01-15'),
-    status: 'pending',
-    signers: [{ id: 1, name: 'María López', status: 'pending' }]
-  },
-  {
-    id: 2,
-    name: 'Acuerdo de Confidencialidad',
-    sender: 'Carlos Rodríguez',
-    createdAt: new Date('2024-01-14'),
-    status: 'pending',
-    signers: [
-      { id: 2, name: 'Pedro García', status: 'pending' },
-      { id: 3, name: 'Ana Martínez', status: 'pending' }
-    ]
-  },
-  {
-    id: 3,
-    name: 'Propuesta Comercial',
-    sender: 'Laura Fernández',
-    createdAt: new Date('2024-01-13'),
-    status: 'in-progress',
-    signers: [
-      { id: 4, name: 'Luis Sanchez', status: 'signed' },
-      { id: 5, name: 'Rosa Díaz', status: 'pending' }
-    ]
-  },
-  {
-    id: 4,
-    name: 'Documento Firmado',
-    sender: 'Miguel Hernández',
-    createdAt: new Date('2024-01-12'),
-    status: 'signed',
-    signers: [{ id: 6, name: 'Isabel Moreno', status: 'signed' }]
-  },
-  {
-    id: 5,
-    name: 'Solicitud Rechazada',
-    sender: 'José López',
-    createdAt: new Date('2024-01-11'),
-    status: 'rejected',
-    signers: [{ id: 7, name: 'Fernando Torres', status: 'rejected' }]
-  },
-  {
-    id: 6,
-    name: 'Poder Notarial',
-    sender: 'Elena García',
-    createdAt: new Date('2024-01-10'),
-    status: 'pending',
-    signers: [
-      { id: 8, name: 'Raúl Domínguez', status: 'pending' },
-      { id: 9, name: 'Patricia Ruiz', status: 'pending' },
-      { id: 10, name: 'Oscar Guerrero', status: 'pending' }
-    ]
-  },
-  {
-    id: 7,
-    name: 'Factura Electrónica',
-    sender: 'Andrés Márquez',
-    createdAt: new Date('2024-01-09'),
-    status: 'signed',
-    signers: [{ id: 11, name: 'Sofía Reyes', status: 'signed' }]
-  }
-]);
+// Data from API
+const loading = ref(true);
+const error = ref('');
+const dashboardData = ref({
+  pendingCount: 0,
+  inProgressCount: 0,
+  signedCount: 0,
+  rejectedCount: 0,
+  pendingDocuments: [],
+  recentActivity: [],
+});
 
 // Computed properties
-const pendingCount = computed(() => documents.value.filter(d => d.status === 'pending').length);
-const inProgressCount = computed(() => documents.value.filter(d => d.status === 'in-progress').length);
-const signedCount = computed(() => documents.value.filter(d => d.status === 'signed').length);
-const rejectedCount = computed(() => documents.value.filter(d => d.status === 'rejected').length);
+const pendingCount = computed(() => dashboardData.value.pendingCount);
+const inProgressCount = computed(() => dashboardData.value.inProgressCount);
+const signedCount = computed(() => dashboardData.value.signedCount);
+const rejectedCount = computed(() => dashboardData.value.rejectedCount);
+const pendingDocuments = computed(() => dashboardData.value.pendingDocuments);
+const recentActivity = computed(() => dashboardData.value.recentActivity);
 
-const pendingDocuments = computed(() => 
-  documents.value.filter(d => d.status === 'pending' || d.status === 'in-progress')
-);
+// Load dashboard data from API
+const loadDashboard = async () => {
+  loading.value = true;
+  error.value = '';
 
-const recentActivity = computed(() => {
-  const activities = [];
-  documents.value.forEach(doc => {
-    if (doc.status === 'signed') {
-      activities.push({
-        type: 'signed',
-        title: 'Documento Completado',
-        description: `"${doc.name}" ha sido completamente firmado`,
-        date: doc.createdAt
-      });
+  try {
+    const response = await fetch('/api/dashboard', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('No autorizado o error al cargar el dashboard');
     }
-    if (doc.status === 'in-progress') {
-      activities.push({
-        type: 'in-progress',
-        title: 'Documento en Firma',
-        description: `"${doc.name}" está en proceso de firma`,
-        date: doc.createdAt
-      });
+
+    const data = await response.json();
+    if (data.success) {
+      dashboardData.value = data.data;
+    } else {
+      error.value = data.message || 'Error al cargar datos';
     }
-    if (doc.status === 'pending') {
-      activities.push({
-        type: 'pending',
-        title: 'Nuevo Documento',
-        description: `"${doc.name}" enviado por ${doc.sender}`,
-        date: doc.createdAt
-      });
-    }
-  });
-  return activities.sort((a, b) => b.date - a.date);
+  } catch (err) {
+    error.value = err?.message || 'Error de red al cargar el dashboard';
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadDashboard();
 });
 
 // Methods
 const formatDate = (date) => {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
   const options = { year: 'numeric', month: 'short', day: 'numeric' };
   return date.toLocaleDateString('es-ES', options);
 };
 
 const getActivityColor = (type) => {
   const colors = {
+    'created': 'info',
     'signed': 'success',
     'in-progress': 'warning',
     'pending': 'info',
-    'rejected': 'error'
+    'rejected': 'error',
+    'completed': 'success',
+    'expired': 'error'
   };
   return colors[type] || 'primary';
 };
 
 const getActivityIcon = (type) => {
   const icons = {
+    'created': 'mdi-file-document-plus',
     'signed': 'mdi-file-document-check',
     'in-progress': 'mdi-file-document-clock',
     'pending': 'mdi-file-document',
-    'rejected': 'mdi-file-document-alert'
+    'rejected': 'mdi-file-document-alert',
+    'completed': 'mdi-file-document-check',
+    'expired': 'mdi-file-document-alert'
   };
   return icons[type] || 'mdi-file-document';
 };
@@ -415,7 +382,6 @@ const getActivityIcon = (type) => {
   background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 100%);
   padding: 2rem 1rem;
   margin: 0;
-  margin-top: 100px;
   width: 100%;
   max-width: 100%;
 }
@@ -527,24 +493,34 @@ const getActivityIcon = (type) => {
   cursor: pointer;
 }
 
-/* Card Styles */
+/* ============================================
+   CARD STYLES - FONDO OSCURO CON BORDE DORADO
+   ============================================ */
 :deep(.v-card) {
   background: #1a1a1a !important;
   color: #ffffff !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
 }
 
 :deep(.v-card__title) {
   color: #ffffff !important;
+  font-weight: 600;
 }
 
 :deep(.v-card__text) {
   color: #b0b0b0 !important;
 }
 
+/* ============================================
+   DIVISORES - GRIS OSCURO CON TONO DORADO
+   ============================================ */
 :deep(.v-divider) {
   border-color: rgba(212, 175, 55, 0.2) !important;
 }
 
+/* ============================================
+   LISTAS - FONDO OSCURO Y TEXTO LEGIBLE
+   ============================================ */
 :deep(.v-list) {
   background: #1a1a1a !important;
 }
@@ -555,25 +531,59 @@ const getActivityIcon = (type) => {
 
 :deep(.v-list-item__title) {
   color: #ffffff !important;
+  font-weight: 500;
 }
 
 :deep(.v-list-item__subtitle) {
-  color: #888 !important;
+  color: #888888 !important;
+  font-size: 0.8rem;
 }
 
 :deep(.v-list-item:hover) {
   background: rgba(212, 175, 55, 0.1) !important;
 }
 
+/* ============================================
+   CHIPS Y BADGES - COLORES VISIBLES
+   ============================================ */
 :deep(.v-chip) {
   background: rgba(212, 175, 55, 0.2) !important;
   color: #d4af37 !important;
+  font-weight: 500;
 }
 
+:deep(.v-chip--variant-tonal) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #f0d85d !important;
+}
+
+/* ============================================
+   TIMELINE - COMPONENTE DE ACTIVIDAD
+   ============================================ */
 :deep(.v-timeline) {
-  background: #1a1a1a;
+  background: #1a1a1a !important;
 }
 
+:deep(.v-timeline-item__dot) {
+  background: rgba(212, 175, 55, 0.3) !important;
+}
+
+:deep(.v-timeline-item__body) {
+  color: #b0b0b0 !important;
+}
+
+:deep(.v-timeline-item strong) {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+:deep(.v-timeline-item .text-caption) {
+  color: #808080 !important;
+}
+
+/* ============================================
+   ESTILOS DE TEXTO - MÁXIMO CONTRASTE
+   ============================================ */
 :deep(.text-medium-emphasis) {
   color: #b0b0b0 !important;
 }
@@ -586,22 +596,107 @@ const getActivityIcon = (type) => {
   color: #ffffff !important;
 }
 
+:deep(.text-caption) {
+  color: #808080 !important;
+}
+
 :deep(.text-h6) {
   color: #ffffff !important;
+  font-weight: 600;
 }
 
 :deep(.text-h5) {
-  color: #888 !important;
-}
-
-:deep(.text-h6) {
-  color: #ffffff !important;
+  color: #b0b0b0 !important;
 }
 
 :deep(.text-h3) {
   color: #ffffff !important;
+  font-weight: 700;
 }
 
+/* ============================================
+   ICONOS Y EFECTOS VISUALES
+   ============================================ */
+:deep(.v-icon) {
+  color: inherit;
+}
+
+:deep(.v-icon.text-primary) {
+  color: #d4af37 !important;
+}
+
+:deep(.v-icon.text-info) {
+  color: #42a5f5 !important;
+}
+
+:deep(.v-icon.text-success) {
+  color: #66bb6a !important;
+}
+
+:deep(.v-icon.text-error) {
+  color: #ef5350 !important;
+}
+
+:deep(.v-icon.text-warning) {
+  color: #ffa726 !important;
+}
+
+:deep(.v-icon.text-secondary) {
+  color: #9c27b0 !important;
+}
+
+/* ============================================
+   ALERTAS - VISIBILIDAD EN FONDO OSCURO
+   ============================================ */
+:deep(.v-alert) {
+  background: rgba(244, 67, 54, 0.1) !important;
+  border: 1px solid rgba(244, 67, 54, 0.3) !important;
+}
+
+:deep(.v-alert--type-error) {
+  background: rgba(244, 67, 54, 0.1) !important;
+  border-left: 4px solid #f44336 !important;
+}
+
+:deep(.v-alert--type-error .v-alert__content) {
+  color: #ff6b6b !important;
+  font-weight: 500;
+}
+
+:deep(.v-alert--type-success) {
+  background: rgba(102, 187, 106, 0.1) !important;
+  border-left: 4px solid #66bb6a !important;
+}
+
+:deep(.v-alert--type-success .v-alert__content) {
+  color: #66bb6a !important;
+  font-weight: 500;
+}
+
+:deep(.v-alert--type-info) {
+  background: rgba(66, 165, 245, 0.1) !important;
+  border-left: 4px solid #42a5f5 !important;
+}
+
+:deep(.v-alert--type-info .v-alert__content) {
+  color: #42a5f5 !important;
+  font-weight: 500;
+}
+
+/* ============================================
+   PROGRESS BARS Y SPINNERS
+   ============================================ */
+:deep(.v-progress-linear) {
+  background: rgba(212, 175, 55, 0.2) !important;
+}
+
+:deep(.v-progress-linear__bar) {
+  background: #d4af37 !important;
+}
+
+/* ============================================
+   CONTENEDOR PRINCIPAL
+   ============================================ */
 :deep(.v-container) {
   background: transparent;
   padding: 0 2rem;
@@ -610,5 +705,35 @@ const getActivityIcon = (type) => {
 /* Main Vuetify Component Overrides */
 :deep(.v-main) {
   background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 100%) !important;
+}
+
+/* ============================================
+   BOTONES - CUANDO SE USEN EN DASHBOARD
+   ============================================ */
+:deep(.v-btn.v-btn--variant-text) {
+  color: #d4af37 !important;
+}
+
+:deep(.v-btn.v-btn--variant-text:hover) {
+  background: rgba(212, 175, 55, 0.1) !important;
+  color: #f0d85d !important;
+}
+
+/* ============================================
+   ESPACIADO Y RESPONSIVE
+   ============================================ */
+@media (max-width: 600px) {
+  .dashboard-page {
+    padding: 1.5rem 1rem !important;
+    margin-top: 80px;
+  }
+
+  :deep(.text-h3) {
+    font-size: 1.75rem !important;
+  }
+
+  :deep(.text-h6) {
+    font-size: 1rem !important;
+  }
 }
 </style>
