@@ -269,7 +269,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import * as pdfjsLib from 'pdfjs-dist';
-import http from '../../utils/http';
+import http from '../utils/http';
 
 // Setup pdf.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
