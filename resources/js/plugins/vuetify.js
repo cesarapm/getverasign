@@ -19,7 +19,13 @@ const vuetify = createVuetify({
           info: '#2196F3',
           success: '#4CAF50',
           warning: '#FFC107',
+          surface: '#0a0a0a',
+          background: '#0a0a0a',
         },
+        variables: {
+          'on-surface': '#e0e0e0',
+          'on-background': '#e0e0e0',
+        }
       },
     },
   },

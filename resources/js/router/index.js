@@ -175,8 +175,17 @@ const router = createRouter({
 /**
  * Guard global para proteger rutas
  */
-router.beforeEach((to, from, next) => {
-  const { isAuthenticated } = useAuth();
+// Flag para controlar si la autenticación ha sido inicializada
+let authInitialized = false;
+
+router.beforeEach(async (to, from, next) => {
+  const { isAuthenticated, initAuth } = useAuth();
+
+  // Inicializar autenticación solo una vez
+  if (!authInitialized) {
+    await initAuth();
+    authInitialized = true;
+  }
 
   // Si la ruta requiere autenticación
   if (to.meta.requiresAuth && !isAuthenticated.value) {

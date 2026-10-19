@@ -13,6 +13,7 @@ class SignatureDocument extends Model
         'document_name',
         'description',
         'pdf_path',
+        'signed_pdf_path',
         'signers',
         'signature_fields',
         'signing_order',

@@ -1,7 +1,7 @@
 <template>
   <v-container class="document-detail-page">
     <!-- Back Button -->
-    <div class="mb-6">
+    <div class="mb-6 d-flex align-center justify-space-between gap-3">
       <v-btn
         variant="text"
         color="primary"
@@ -9,6 +9,16 @@
         @click="$router.back()"
       >
         Volver
+      </v-btn>
+      <v-btn
+        v-if="document"
+        color="error"
+        variant="tonal"
+        prepend-icon="mdi-delete"
+        :loading="deletingDocument"
+        @click="deleteDocument"
+      >
+        Borrar trabajo
       </v-btn>
     </div>
 
@@ -95,11 +105,23 @@
 
           <!-- PDF Preview with Signatures -->
           <v-card class="mb-6" elevation="0" outlined>
-            <v-card-title class="pa-6">Vista Previa del Documento con Firmas</v-card-title>
+            <v-card-title class="pa-6 d-flex align-center justify-between">
+              <span>Vista Previa del Documento con Firmas</span>
+              <v-btn
+                color="success"
+                variant="tonal"
+                prepend-icon="mdi-download"
+                :loading="downloadingSignedPdf"
+                @click="downloadSignedPdf"
+                size="small"
+              >
+                {{ document.signed_pdf_path ? 'Descargar PDF Firmado' : 'Generar y descargar PDF firmado' }}
+              </v-btn>
+            </v-card-title>
             <v-divider></v-divider>
             <v-card-text class="pa-6">
               <!-- PDF Canvas Container -->
-              <div v-if="pdfPages.length > 0" class="pdf-viewer-container">
+              <div v-if="pdfLoaded && pdfPages.length > 0" class="pdf-viewer-container">
                 <!-- Page Navigation -->
                 <div class="mb-4 d-flex align-center justify-center gap-4">
                   <v-btn
@@ -123,12 +145,13 @@
                 <div class="pdf-canvas-wrapper">
                   <div class="pdf-page-container">
                     <canvas
-                      :id="`pdf-canvas-detail-${currentPage}`"
+                      :key="`pdf-canvas-${currentPage}`"
+                      ref="pdfCanvasRef"
                       class="pdf-canvas"
                     ></canvas>
                     
                     <!-- Signature Overlays -->
-                    <div class="signatures-overlay">
+                    <div v-if="!usingSignedPdf" class="signatures-overlay">
                       <div
                         v-for="field in signatureFieldsForCurrentPage"
                         :key="field.id"
@@ -152,25 +175,35 @@
                 </div>
               </div>
 
-              <!-- Empty State -->
-              <div v-else class="text-center pa-8">
+              <!-- Empty State with Load Button -->
+              <div v-if="!pdfLoaded" class="text-center pa-8">
                 <v-icon size="80" class="mb-4 text-medium-emphasis">mdi-file-pdf-box</v-icon>
-                <div class="text-body-2 text-medium-emphasis">
-                  <p>No hay vista previa disponible</p>
+                <div class="text-body-2 text-medium-emphasis mb-6">
+                  <p>Presiona el botón para cargar la vista previa del PDF</p>
                 </div>
+                <v-btn
+                  color="primary"
+                  variant="tonal"
+                  size="large"
+                  prepend-icon="mdi-eye"
+                  :loading="loadingPdf"
+                  @click="loadPdfPreview"
+                >
+                  Ver Miniatura
+                </v-btn>
               </div>
 
               <!-- Download Button -->
               <v-btn
-                v-if="document.pdf_url"
+                v-if="document.signed_pdf_url || document.pdf_url"
                 color="primary"
                 variant="outlined"
                 class="mt-4"
-                :href="document.pdf_url"
+                :href="document.signed_pdf_url || document.pdf_url"
                 target="_blank"
               >
                 <v-icon start>mdi-download</v-icon>
-                Descargar PDF
+                {{ document.signed_pdf_url ? 'Descargar PDF Firmado' : 'Descargar PDF Original' }}
               </v-btn>
             </v-card-text>
           </v-card>
@@ -178,6 +211,49 @@
 
         <!-- Sidebar -->
         <v-col cols="12" lg="4">
+          <!-- Download Options Card -->
+          <v-card class="mb-6" elevation="0" outlined v-if="document">
+            <v-card-title class="pa-6">
+              <v-icon class="mr-2" color="primary">mdi-download-multiple</v-icon>
+              Descargas
+            </v-card-title>
+
+            <v-divider></v-divider>
+
+            <v-card-text class="pa-6">
+              <v-row class="gap-3">
+                <!-- Descargar PDF Original -->
+                <v-col cols="12">
+                  <v-btn
+                    block
+                    color="info"
+                    variant="tonal"
+                    prepend-icon="mdi-file-pdf"
+                    :href="assetUrl + 'storage/' + document.pdf_path"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    PDF Original
+                  </v-btn>
+                </v-col>
+
+                <!-- Descargar PDF Firmado -->
+                <v-col cols="12">
+                  <v-btn
+                    block
+                    color="success"
+                    variant="tonal"
+                    prepend-icon="mdi-file-pdf-box"
+                    :loading="downloadingSignedPdf"
+                    @click="downloadSignedPdf"
+                  >
+                    {{ document.signed_pdf_path ? 'PDF Firmado ✓' : 'Generar PDF Firmado' }}
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+          
           <!-- Signers Card -->
           <v-card class="mb-6" elevation="0" outlined>
             <v-card-title class="pa-6">
@@ -266,8 +342,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, watch, shallowRef, markRaw, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import * as pdfjsLib from 'pdfjs-dist';
 import http from '../utils/http';
 
@@ -275,17 +351,23 @@ import http from '../utils/http';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const route = useRoute();
+const router = useRouter();
 const assetUrl = window.location.origin + '/';
 
 // State
 const loading = ref(true);
 const error = ref(null);
 const document = ref(null);
-const pdfDocument = ref(null);
+const pdfDocument = shallowRef(null);
 const pdfPages = ref([]);
 const totalPages = ref(0);
 const currentPage = ref(0);
-const renderedPages = ref(new Set());
+const downloadingSignedPdf = ref(false);
+const deletingDocument = ref(false);
+const loadingPdf = ref(false);
+const pdfLoaded = ref(false);
+const pdfCanvasRef = ref(null);
+const usingSignedPdf = computed(() => Boolean(document.value?.signed_pdf_url));
 
 // Computed
 const progressPercentage = computed(() => {
@@ -330,9 +412,7 @@ const loadDocument = async () => {
     const response = await http.get(`/signature-documents/${route.params.id}`);
     document.value = response.data;
 
-    if (document.value.pdf_url) {
-      await loadPdf(document.value.pdf_url);
-    }
+    // No cargar el PDF automáticamente, esperar a que el usuario presione el botón
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Error al cargar el documento';
     console.error('Error loading document:', err);
@@ -344,10 +424,12 @@ const loadDocument = async () => {
 const loadPdf = async (pdfUrl) => {
   try {
     const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-    pdfDocument.value = pdf;
+    pdfDocument.value = markRaw(pdf);
     totalPages.value = pdf.numPages;
     pdfPages.value = Array.from({ length: pdf.numPages }, (_, i) => i);
-    
+
+    currentPage.value = 0;
+    await nextTick();
     await renderPage(0);
   } catch (err) {
     error.value = 'Error al cargar el PDF: ' + err.message;
@@ -355,15 +437,43 @@ const loadPdf = async (pdfUrl) => {
   }
 };
 
+const downloadSignedPdf = async () => {
+  if (!document.value?.id || downloadingSignedPdf.value) {
+    return;
+  }
+
+  try {
+    downloadingSignedPdf.value = true;
+
+    const response = await http.get(`/signature-documents/${document.value.id}/download-signed`, {
+      responseType: 'blob',
+    });
+
+    const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    const link = window.document.createElement('a');
+    const fallbackName = `${(document.value.document_name || 'documento').replace(/[^\w\-]+/g, '_')}-firmado.pdf`;
+    link.href = blobUrl;
+    link.download = fallbackName;
+    window.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+    await loadDocument();
+  } catch (err) {
+    console.error('Error downloading signed PDF:', err);
+    window.alert('No se pudo descargar el PDF firmado. Intenta de nuevo.');
+  } finally {
+    downloadingSignedPdf.value = false;
+  }
+};
+
 const renderPage = async (pageNum) => {
-  if (!pdfDocument.value || renderedPages.value.has(pageNum)) return;
+  if (!pdfDocument.value || !pdfCanvasRef.value) return;
 
   try {
     const page = await pdfDocument.value.getPage(pageNum + 1);
-    const canvas = document.getElementById(`pdf-canvas-detail-${pageNum}`);
+    const canvas = pdfCanvasRef.value;
     
-    if (!canvas) return;
-
     const viewport = page.getViewport({ scale: 1.5 });
     canvas.width = viewport.width;
     canvas.height = viewport.height;
@@ -373,10 +483,70 @@ const renderPage = async (pageNum) => {
       canvasContext: context,
       viewport: viewport
     }).promise;
-
-    renderedPages.value.add(pageNum);
   } catch (err) {
     console.error(`Error rendering page ${pageNum}:`, err);
+  }
+};
+
+const loadPdfPreview = async () => {
+  if (!document.value) return;
+  
+  try {
+    loadingPdf.value = true;
+    
+    // Obtener la URL del PDF
+    const pdfUrl = document.value.signed_pdf_url || document.value.pdf_url;
+    
+    if (!pdfUrl) {
+      throw new Error('No hay PDF disponible');
+    }
+    
+    // Cargar el PDF usando pdf.js
+    const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+    pdfDocument.value = markRaw(pdf);
+    totalPages.value = pdf.numPages;
+    
+    // Crear array de páginas
+    pdfPages.value = Array.from({ length: pdf.numPages }, (_, i) => i);
+    
+    // Marcar como cargado
+    pdfLoaded.value = true;
+    currentPage.value = 0;
+    
+    // Renderizar la primera página
+    await nextTick();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await renderPage(0);
+    
+  } catch (err) {
+    console.error('Error loading PDF preview:', err);
+    error.value = 'No se pudo cargar la vista previa del PDF';
+  } finally {
+    loadingPdf.value = false;
+  }
+};
+
+const deleteDocument = async () => {
+  if (!document.value?.id || deletingDocument.value) {
+    return;
+  }
+
+  const confirmed = window.confirm('¿Seguro que deseas borrar este trabajo? Esta acción no se puede deshacer.');
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    deletingDocument.value = true;
+    await http.delete(`/signature-documents/${document.value.id}`);
+    window.alert('Trabajo eliminado correctamente.');
+    await router.push('/dashboard');
+  } catch (err) {
+    console.error('Error deleting document:', err);
+    const message = err.response?.data?.message || 'No se pudo borrar el trabajo.';
+    window.alert(message);
+  } finally {
+    deletingDocument.value = false;
   }
 };
 
@@ -464,8 +634,10 @@ const getRoleLabel = (role) => {
 };
 
 // Watchers
-watch(currentPage, (newPage) => {
-  renderPage(newPage);
+watch(currentPage, async (newPage) => {
+  if (!pdfLoaded.value) return;
+  await nextTick();
+  await renderPage(newPage);
 });
 
 // Lifecycle

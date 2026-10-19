@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -6,21 +7,12 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-
-@font-face {
-  font-family: 'Sanke';
-  src: url('../fonts/sanke.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  --font-brand: 'Sanke', 'Times New Roman', serif;
+  --font-brand: 'Montserrat', sans-serif;
 }
 
 html,
@@ -30,4 +22,33 @@ body,
 .v-application * {
   font-family: var(--font-brand) !important;
    letter-spacing: 1px;
+}
+
+/* Textos más claros globalmente */
+body,
+.v-application,
+.text-body-1,
+.text-body-2,
+.text-subtitle-1,
+.text-subtitle-2,
+p,
+span,
+div {
+  color: #e0e0e0 !important;
+}
+
+/* Títulos aún más claros */
+h1, h2, h3, h4, h5, h6,
+.v-card__title,
+.text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
+  color: #ffffff !important;
+}
+
+/* Links más claros */
+a {
+  color: #82B1FF !important;
+}
+
+a:hover {
+  color: #b3d9ff !important;
 }

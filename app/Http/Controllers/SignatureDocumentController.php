@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SignatureDocument;
+use App\Services\PdfSignatureEmbedder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -186,6 +187,18 @@ class SignatureDocumentController
 
             DB::commit();
 
+            // Generar PDF con firmas incrustadas en background
+            try {
+                $embedder = new PdfSignatureEmbedder();
+                $signedPdfPath = $embedder->generateSignedPdf($document);
+                $document->update([
+                    'signed_pdf_path' => 'signature-documents/pdfs-signed/' . basename($signedPdfPath),
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("No se pudo generar PDF firmado: " . $e->getMessage());
+                // Continuar sin PDF firmado
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Documento creado exitosamente',
@@ -193,6 +206,8 @@ class SignatureDocumentController
                     'id' => $document->id,
                     'document_name' => $document->document_name,
                     'pdf_url' => asset('storage/' . $document->pdf_path),
+                    'signed_pdf_path' => $document->signed_pdf_path,
+                    'signed_pdf_url' => $document->signed_pdf_path ? asset('storage/' . $document->signed_pdf_path) : null,
                 ],
             ], 201);
         } catch (\Throwable $e) {
@@ -222,11 +237,118 @@ class SignatureDocumentController
             'document_name' => $document->document_name,
             'description' => $document->description,
             'pdf_url' => asset('storage/' . $document->pdf_path),
+            'signed_pdf_path' => $document->signed_pdf_path,
+            'signed_pdf_url' => $document->signed_pdf_path ? asset('storage/' . $document->signed_pdf_path) : null,
+            'signed_pdf_download_url' => url('/api/signature-documents/' . $document->id . '/download-signed'),
             'signers' => $document->signers,
             'signature_fields' => $document->signature_fields,
             'signing_order' => $document->signing_order,
             'expiration_days' => $document->expiration_days,
             'status' => $document->status,
+        ]);
+    }
+
+    public function downloadSigned($id)
+    {
+        $document = SignatureDocument::findOrFail($id);
+
+        if (!$document->signed_pdf_path) {
+            try {
+                $embedder = new PdfSignatureEmbedder();
+                $signedPdfPath = $embedder->generateSignedPdf($document);
+                $document->update([
+                    'signed_pdf_path' => 'signature-documents/pdfs-signed/' . basename($signedPdfPath),
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No fue posible generar el PDF firmado: ' . $e->getMessage(),
+                ], 422);
+            }
+        }
+
+        $signedPdfAbsolutePath = Storage::disk('public')->path($document->signed_pdf_path);
+
+        if (!file_exists($signedPdfAbsolutePath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró el archivo PDF firmado.',
+            ], 404);
+        }
+
+        $safeBaseName = Str::slug(pathinfo($document->document_name, PATHINFO_FILENAME));
+        if ($safeBaseName === '') {
+            $safeBaseName = 'documento';
+        }
+
+        $downloadName = $safeBaseName . '-firmado.pdf';
+
+        return response()->download($signedPdfAbsolutePath, $downloadName, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $document = SignatureDocument::findOrFail($id);
+        $currentUser = auth()->user();
+
+        if ($document->owner_id !== null && (!$currentUser || (int) $document->owner_id !== (int) $currentUser->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para borrar este trabajo.',
+            ], 403);
+        }
+
+        $filesToDelete = [];
+
+        if (is_string($document->pdf_path) && $document->pdf_path !== '') {
+            $filesToDelete[] = $document->pdf_path;
+        }
+
+        if (is_string($document->signed_pdf_path) && $document->signed_pdf_path !== '') {
+            $filesToDelete[] = $document->signed_pdf_path;
+        }
+
+        if (is_array($document->signature_fields)) {
+            foreach ($document->signature_fields as $field) {
+                if (is_array($field) && !empty($field['signatureImagePath']) && is_string($field['signatureImagePath'])) {
+                    $filesToDelete[] = $field['signatureImagePath'];
+                }
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $document->activities()->delete();
+            $document->delete();
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo borrar el trabajo: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        $uniqueFiles = array_values(array_unique(array_filter($filesToDelete)));
+        foreach ($uniqueFiles as $filePath) {
+            try {
+                Storage::disk('public')->delete($filePath);
+            } catch (\Throwable $e) {
+                \Log::warning('No se pudo borrar archivo asociado al trabajo', [
+                    'path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Trabajo eliminado correctamente.',
         ]);
     }
 
@@ -244,4 +366,3 @@ class SignatureDocumentController
         return $decoded;
     }
 }
-

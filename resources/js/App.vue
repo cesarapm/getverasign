@@ -14,10 +14,7 @@
               <div class="brand-mark">
                 <img :src="logo" alt="Logo" />
               </div>
-              <!-- <div class="brand-copy">
-                <span class="brand-wordmark">Serviram</span>
-                <span class="brand-note">Equipos Profesionales</span>
-              </div> -->
+
             </div>
           </router-link>
         </v-app-bar-title>
@@ -39,20 +36,20 @@
           >
             Dashboard
           </v-btn>
-          <v-btn
+          <!-- <v-btn
             :to="{ name: 'DocumentList' }"
             variant="text"
             class="nav-link"
           >
             Documentos
-          </v-btn>
-          <v-btn
+          </v-btn> -->
+          <!-- <v-btn
             :to="{ name: 'Signers' }"
             variant="text"
             class="nav-link"
           >
             Firmantes
-          </v-btn>
+          </v-btn> -->
           <v-btn
             :to="{ name: 'Settings' }"
             variant="text"
@@ -88,16 +85,16 @@
           prepend-icon="mdi-view-dashboard"
           title="Dashboard"
         ></v-list-item>
-        <v-list-item
+        <!-- <v-list-item
           :to="{ name: 'DocumentList' }"
           prepend-icon="mdi-file-document-multiple"
           title="Documentos"
-        ></v-list-item>
-        <v-list-item
+        ></v-list-item> -->
+        <!-- <v-list-item
           :to="{ name: 'Signers' }"
           prepend-icon="mdi-account-multiple"
           title="Firmantes"
-        ></v-list-item>
+        ></v-list-item> -->
         <v-list-item
           :to="{ name: 'Settings' }"
           prepend-icon="mdi-cog"
@@ -107,7 +104,7 @@
     </v-navigation-drawer>
 
     <!-- Contenido principal -->
-    <v-main class="main-content">
+    <v-main class="main-content" :style="{ paddingTop: navbarHeight + 'px' }">
       <router-view></router-view>
     </v-main>
 
@@ -206,15 +203,33 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useCart } from './composables/useCart';
+import { useAuth } from './composables/useAuth';
 
 const { itemCount } = useCart();
+const { initAuth } = useAuth();
 const drawer = ref(false);
 const navbar = ref(null);
+const navbarHeight = ref(0);
 let lastScrollTop = 0;
 let ticking = false;
 const scrollThreshold = 5;
 const logo = '/images/logo.webp';
 
+// Calcular altura del navbar dinámicamente
+const updateNavbarHeight = () => {
+  if (navbar.value) {
+    navbarHeight.value = navbar.value.$el.offsetHeight;
+  }
+};
+
+onMounted(async () => {
+  // Inicializar autenticación al montar la app
+  await initAuth();
+
+  updateNavbarHeight();
+  window.addEventListener('resize', updateNavbarHeight);
+  window.addEventListener('scroll', onScroll, { passive: true });
+});
 
 // Scroll behavior with requestAnimationFrame for smooth performance
 const handleScroll = () => {
@@ -256,12 +271,9 @@ const onScroll = () => {
   }
 };
 
-onMounted(() => {
-  window.addEventListener('scroll', onScroll, { passive: true });
-});
-
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll);
+  window.removeEventListener('resize', updateNavbarHeight);
 });
 </script>
 
@@ -405,7 +417,7 @@ header {
 
   font-size: 1rem;
   letter-spacing: 0.12em;
- 
+
   object-fit: contain;
   overflow: hidden;
 }

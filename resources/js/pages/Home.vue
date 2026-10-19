@@ -36,7 +36,7 @@
                   <v-icon start>mdi-rocket-launch</v-icon>
                   Comenzar Ahora
                 </v-btn>
-                <v-btn
+                <!-- <v-btn
                   color="secondary"
                   variant="outlined"
                   size="large"
@@ -45,7 +45,7 @@
                 >
                   <v-icon start>mdi-play-circle-outline</v-icon>
                   Ver Demo
-                </v-btn>
+                </v-btn> -->
               </div>
 
               <!-- Trust Text -->
@@ -503,7 +503,7 @@ const showDemo = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.06) 0%, transparent 50%);
   pointer-events: none;

@@ -12,9 +12,9 @@
   --color-bg-dark-tertiary: #2a2a2a;
   
   --color-text-white: #ffffff;
-  --color-text-light-gray: #b0b0b0;
-  --color-text-medium-gray: #888888;
-  --color-text-dark-gray: #606060;
+  --color-text-light-gray: #e0e0e0;
+  --color-text-medium-gray: #c0c0c0;
+  --color-text-dark-gray: #a0a0a0;
   
   --color-accent-gold: #d4af37;
   --color-accent-gold-light: #f0d85d;
@@ -532,6 +532,64 @@ a:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(212, 175, 55, 0.6);
+}
+
+/* ============================================================
+   BOTONES - TEXTOS MÁS CLAROS
+   ============================================================ */
+.v-btn {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.v-btn--variant-elevated,
+.v-btn--variant-flat {
+  color: #ffffff !important;
+}
+
+.v-btn--variant-text {
+  color: var(--color-accent-gold) !important;
+}
+
+.v-btn--variant-outlined {
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #e0e0e0 !important;
+}
+
+/* ============================================================
+   INPUTS Y CAMPOS - TEXTOS MÁS CLAROS
+   ============================================================ */
+.v-input__control .v-field__input,
+.v-text-field input,
+.v-textarea textarea {
+  color: #ffffff !important;
+}
+
+.v-input__details {
+  color: #b0b0b0 !important;
+}
+
+/* ============================================================
+   TABLAS - MEJOR LEGIBILIDAD
+   ============================================================ */
+.v-data-table__tbody td {
+  color: #e0e0e0 !important;
+}
+
+.v-data-table__thead .v-data-table__th {
+  color: #ffffff !important;
+  background: #2a2a2a !important;
+}
+
+/* ============================================================
+   DROPDOWNS Y SELECTS
+   ============================================================ */
+.v-list-item__title {
+  color: #e0e0e0 !important;
+}
+
+.v-menu__content {
+  background: #1a1a1a !important;
 }
 
 /* ============================================================

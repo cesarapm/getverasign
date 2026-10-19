@@ -15,8 +15,12 @@
     "file": "assets/materialdesignicons-webfont-Dp5v-WZN.woff2",
     "src": "node_modules/@mdi/font/fonts/materialdesignicons-webfont.woff2"
   },
+  "node_modules/pdfjs-dist/build/pdf.worker.min.js": {
+    "file": "assets/pdf.worker.min-DKQKFyKK.js",
+    "src": "node_modules/pdfjs-dist/build/pdf.worker.min.js"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-D3nThf1x.css",
+    "file": "assets/app-D576rlks.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -25,14 +29,15 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-anEu94k2.js",
+    "file": "assets/app-BgEE7qWK.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-Bt1MxBUW.css"
+      "assets/app-KH7Sk4ly.css"
     ],
     "assets": [
+      "assets/pdf.worker.min-DKQKFyKK.js",
       "assets/materialdesignicons-webfont-CSr8KVlo.eot",
       "assets/materialdesignicons-webfont-Dp5v-WZN.woff2",
       "assets/materialdesignicons-webfont-PXm3-2wK.woff",
